@@ -1,10 +1,11 @@
 import express, { Application } from "express";
 import socketIO, { Server as SocketIOServer } from "socket.io";
-import { createServer, Server as HTTPServer } from "http";
+import { createServer, Server as HTTPSServer } from "https";
 import path from "path";
+import { readFileSync } from 'fs';
 
 export class Server {
-  private httpServer: HTTPServer;
+  private httpsServer: HTTPSServer;
   private app: Application;
   private io: SocketIOServer;
 
@@ -18,8 +19,13 @@ export class Server {
 
   private initialize(): void {
     this.app = express();
-    this.httpServer = createServer(this.app);
-    this.io = socketIO(this.httpServer);
+    const options = {
+      key: readFileSync('key.pem'),
+      cert: readFileSync('cert.pem')
+    };
+
+    this.httpsServer = createServer(options,this.app);
+    this.io = socketIO(this.httpsServer);
 
     this.configureApp();
     this.configureRoutes();
@@ -88,7 +94,7 @@ export class Server {
   }
 
   public listen(callback: (port: number) => void): void {
-    this.httpServer.listen(this.DEFAULT_PORT, () => {
+    this.httpsServer.listen(this.DEFAULT_PORT,'0.0.0.0', () => {
       callback(this.DEFAULT_PORT);
     });
   }
